@@ -116,7 +116,8 @@ namespace soundstreamer2
             {
                 var wic = WaveIn.GetCapabilities(i);
                 string productName = wic.ProductName;
-                if (productName.Contains("Virtual Cable") || productName.Contains("Stereo Mix")) return true;
+                if (productName.Contains("Virtual Cable") || productName.Contains("Virtual Audio Cable") ||
+                    productName.Contains("Stereo Mix")) return true;
             }
             return false;
         }
