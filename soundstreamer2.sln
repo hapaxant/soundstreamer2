@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2047
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "soundstreamer2", "soundstreamer2\soundstreamer2.csproj", "{D59CF8AA-539B-4D5D-A1C6-65106DCAC7A8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{21E4DD38-18DA-4A6D-BD04-2E080A7F011B} = {21E4DD38-18DA-4A6D-BD04-2E080A7F011B}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DownloadFile", "DownloadFile\DownloadFile.csproj", "{21E4DD38-18DA-4A6D-BD04-2E080A7F011B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D59CF8AA-539B-4D5D-A1C6-65106DCAC7A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D59CF8AA-539B-4D5D-A1C6-65106DCAC7A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D59CF8AA-539B-4D5D-A1C6-65106DCAC7A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D59CF8AA-539B-4D5D-A1C6-65106DCAC7A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21E4DD38-18DA-4A6D-BD04-2E080A7F011B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21E4DD38-18DA-4A6D-BD04-2E080A7F011B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21E4DD38-18DA-4A6D-BD04-2E080A7F011B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21E4DD38-18DA-4A6D-BD04-2E080A7F011B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {10732642-F9E6-435E-BA12-980FDC38A232}
+	EndGlobalSection
+EndGlobal
