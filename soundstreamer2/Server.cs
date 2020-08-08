@@ -19,8 +19,6 @@ namespace soundstreamer2
     public class Server
     {
         public string NgrokToken { private get; set; } = "1dGNOmzqVuNMYRRYqzjwmyipxZj_NopAzGK6qPcT5Ca6zQGc";
-        //public const string Ngrok32Bit = "ftp://ftp.computernewb.com/ngrok/4VmDzA7iaHb/ngrok-stable-windows-386.zip";
-        //public const string Ngrok64Bit = "ftp://ftp.computernewb.com/ngrok/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip";
         public const string Ngrok32Bit = "https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-386.zip";
         public const string Ngrok64Bit = "https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip";
         public const string Ngrok32Sum = "957E1A163B93FE6A8CD50C70CB453618679CDDF5636739935B3AFBCA1D972744";
@@ -36,35 +34,8 @@ namespace soundstreamer2
         public static bool HasNgrok() => File.Exists("ngrok.exe");
         public void DownloadNgrok()
         {
-            //try
-            //{
             var ngrok = !Environment.Is64BitOperatingSystem ? Ngrok32Bit : Ngrok64Bit;
             var ngrokhash = !Environment.Is64BitOperatingSystem ? Ngrok32Sum : Ngrok64Sum;
-            //    var wr = (FtpWebRequest)WebRequest.Create(ngrok);
-            //    wr.Credentials = new NetworkCredential("anon", "anon");
-            //    using (var ms = new MemoryStream())
-            //    {
-            //        using (var ws = wr.GetResponse())
-            //        using (var rs = ws.GetResponseStream())
-            //        {
-            //            rs.CopyTo(ms);
-            //        }
-            //        ms.Position = 0;
-            //        EnsureCorrectHash(ngrokhash, ms);
-            //        using (var zs = ZipStorer.Open(ms, FileAccess.Read))
-            //        using (var fs = new FileStream("ngrok.exe", FileMode.CreateNew, FileAccess.Write))
-            //        {
-            //            Trace.Assert(zs.ExtractFile(zs.ReadCentralDir().First(x => x.FilenameInZip == "ngrok.exe"), fs));
-            //        }
-            //    }
-            //}
-            //catch (WebException)
-            //{
-            //    Console.WriteLine("ftp seems to be down... download ngrok manually.");
-            //    Process.Start("https://ngrok.com/download");
-            //    Console.WriteLine("press enter once you put ngrok.exe in this directory");
-            //    Console.ReadLine();
-            //}
             DownloadRemoteFile(ngrok, "ngrok.zip");
 
             if (!File.Exists("ngrok.zip"))
@@ -84,11 +55,7 @@ namespace soundstreamer2
                 }
             }
 
-            if (!File.Exists("ngrok.exe"))
-            {
-                Console.Error.WriteLine("ngrok.exe not found!");
-                UseNgrok = false;
-            }
+            File.Delete("ngrok.zip");
         }
 
         static void EnsureCorrectHash(string stringhash, MemoryStream ms)
@@ -153,6 +120,8 @@ namespace soundstreamer2
             if (Environment.Is64BitOperatingSystem) p = Process.Start("vac\\setup64.exe");
             else p = Process.Start("vac\\setup.exe");
             p.WaitForExit();
+
+            File.Delete("sketchy_vac.zip");
 
             while (files.Count > 0)
             {
@@ -306,7 +275,7 @@ namespace soundstreamer2
         WaveFormat waveFormat;
         public int BufferMs = 50;
         public int SampleRate { get; set; } = 22050;
-        public byte Channels { get; set; } = 1;
+        public byte Channels { get; set; } = 2;
         private byte _compressionType = (byte)CompressionType.Deflate;
         public byte Compression
         {
