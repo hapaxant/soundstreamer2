@@ -24,10 +24,8 @@ namespace soundstreamer2
         NetworkIO nc;
         float Volume = 0.2f;
         bool Muted = false;
-        //WaveOut waveOut;
         FixOutDevice waveOut;
         WaveFormat waveFormat;
-        //BufferedWaveProvider bufferedWave;
         Thread pingThread;
         Thread receiveThread;
         byte compression;
@@ -107,22 +105,39 @@ namespace soundstreamer2
                     File.WriteAllLines("clientcfg.txt", new[] { Protocol.VERSION.ToString(), Code, Volume.ToString(CultureInfo.InvariantCulture) });
                     Console.WriteLine($"Volume: {(Volume * 100).ToString("N0")}% {(Muted ? "(muted)" : "       ")}");
                     Console.WriteLine("Arrow keys to change volume, spacebar to mute");
-                    Console.WriteLine("hold ctrl for fast change, shift for slow");
+                    Console.WriteLine("ctrl+arrows for fast change, - and = for slow change");
                     Console.WriteLine($"Samplerate: {sampleRate}, Channels: {channels}, Compression: {(CompressionType)compressionType}");
                     var key = Console.ReadKey(true);
                     switch (key.Key)
                     {
+                        case ConsoleKey.OemMinus:
+                        case ConsoleKey.Subtract:
+                            if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume -= .02f;
+                            else Volume -= .01f;
+
+                            if (Volume <= 0f) Volume = 0f;
+                            waveOut.Volume = Volume;
+                            if (Volume < 0.005f && !Muted) goto case ConsoleKey.Spacebar;
+                            break;
+                        case ConsoleKey.OemPlus:
+                        case ConsoleKey.Add:
+                            if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume += .02f;
+                            Volume += .01f;
+
+                            if (Volume >= 1f) Volume = 1f;
+                            waveOut.Volume = Volume;
+                            if (Volume > 0.005f && Muted) goto case ConsoleKey.Spacebar;
+                            break;
                         case ConsoleKey.DownArrow:
                             if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume -= .20f;
-                            else if ((key.Modifiers & ConsoleModifiers.Shift) == ConsoleModifiers.Shift) Volume -= .075f;
                             else Volume -= .10f;
 
                             if (Volume <= 0f) Volume = 0f;
+                            waveOut.Volume = Volume;
                             if (Volume < 0.005f && !Muted) goto case ConsoleKey.Spacebar;
                             break;
                         case ConsoleKey.LeftArrow:
                             if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume -= .15f;
-                            else if ((key.Modifiers & ConsoleModifiers.Shift) == ConsoleModifiers.Shift) Volume -= .01f;
                             else Volume -= .05f;
 
                             if (Volume <= 0f) Volume = 0f;
@@ -131,7 +146,6 @@ namespace soundstreamer2
                             break;
                         case ConsoleKey.UpArrow:
                             if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume += .20f;
-                            else if ((key.Modifiers & ConsoleModifiers.Shift) == ConsoleModifiers.Shift) Volume += .075f;
                             else Volume += .10f;
 
                             if (Volume >= 1f) Volume = 1f;
@@ -140,7 +154,6 @@ namespace soundstreamer2
                             break;
                         case ConsoleKey.RightArrow:
                             if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume += .15f;
-                            else if ((key.Modifiers & ConsoleModifiers.Shift) == ConsoleModifiers.Shift) Volume += .01f;
                             else Volume += .05f;
 
                             if (Volume >= 1f) Volume = 1f;
