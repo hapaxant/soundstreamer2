@@ -39,17 +39,31 @@ namespace soundstreamer2
             notifyClient = notificationClient;
             deviceEnum.RegisterEndpointNotificationCallback(notifyClient);
         }
+        private readonly object restartLock = new object();
         public void RestartOut()
         {
-            waveOut?.Stop();
-            waveOut?.Dispose();
-            waveOut = new WaveOut();
-            //waveOut.NumberOfBuffers = 3;
-            //waveOut.DesiredLatency = 50 * waveOut.NumberOfBuffers;
-            bufferedWave = new BufferedWaveProvider(waveFormat);
-            waveOut.Init(bufferedWave);
-            waveOut.Volume = Volume;
-            waveOut.Play();
+            try
+            {
+                lock (restartLock)
+                {
+                    waveOut?.Stop();
+                    waveOut?.Dispose();
+                    waveOut = new WaveOut();
+                    //waveOut.NumberOfBuffers = 3;
+                    //waveOut.DesiredLatency = 50 * waveOut.NumberOfBuffers;
+                    bufferedWave = new BufferedWaveProvider(waveFormat);
+                    bufferedWave.DiscardOnBufferOverflow = false;
+                    bufferedWave.BufferDuration = TimeSpan.FromMilliseconds(1500);
+                    waveOut.Init(bufferedWave);
+                    waveOut.Volume = Volume;
+                    waveOut.Play();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("in RestartOut():" + ex.ToString());
+                throw;
+            }
         }
 
         public void Dispose()

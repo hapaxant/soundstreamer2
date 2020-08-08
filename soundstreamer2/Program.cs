@@ -263,6 +263,11 @@ namespace soundstreamer2
                 Console.WriteLine(ex.Message);
                 throw;
             }
+
+#if DEBUG
+            Console.WriteLine("program execution finished");
+            Console.ReadLine();
+#endif
         }
     }
 }

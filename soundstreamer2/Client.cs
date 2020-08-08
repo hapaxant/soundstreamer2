@@ -211,29 +211,39 @@ namespace soundstreamer2
                     int len = nc.Reader.ReadInt32();
                     if (len > 67108864) throw new ArgumentOutOfRangeException("buffer too big!");//limit to 64 mb in case something fricks up and requests a 2 gb buffer
                     var buf = nc.Reader.ReadBytes(len);
-                    switch ((CompressionType)compression)
+                    try
                     {
-                        case CompressionType.None:
-                            waveOut.bufferedWave.AddSamples(buf, 0, len);
-                            break;
-                        case CompressionType.Deflate:
-                            using (var ms = new MemoryStream(buf))
-                            using (var ds = new DeflateStream(ms, CompressionMode.Decompress, true))
-                            using (var ms2 = new MemoryStream())
-                            {
-                                ds.CopyTo(ms2);
-                                ds.Close();
-                                var arr = ms2.ToArray();
-                                waveOut.bufferedWave.AddSamples(arr, 0, arr.Length);
-                            }
-                            break;
-                        case CompressionType.Mp3:
-                        case CompressionType.Ogg:
-                            Console.WriteLine("not implemented");
-                            break;
-                        default:
-                            Console.WriteLine("unknown compression type");
-                            break;
+                        //clear buffer if we're too far behind (there's probably a better way to do this)
+                        if (waveOut.bufferedWave.BufferedDuration.TotalMilliseconds > 500d) waveOut.bufferedWave.ClearBuffer();
+
+                        switch ((CompressionType)compression)
+                        {
+                            case CompressionType.None:
+                                waveOut.bufferedWave.AddSamples(buf, 0, len);
+                                break;
+                            case CompressionType.Deflate:
+                                using (var ms = new MemoryStream(buf))
+                                using (var ds = new DeflateStream(ms, CompressionMode.Decompress, true))
+                                using (var ms2 = new MemoryStream())
+                                {
+                                    ds.CopyTo(ms2);
+                                    ds.Close();
+                                    var arr = ms2.ToArray();
+                                    waveOut.bufferedWave.AddSamples(arr, 0, arr.Length);
+                                }
+                                break;
+                            case CompressionType.Mp3:
+                            case CompressionType.Ogg:
+                                Console.WriteLine("not implemented");
+                                break;
+                            default:
+                                Console.WriteLine("unknown compression type");
+                                break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
                     }
                 }
             }
