@@ -24,9 +24,10 @@ namespace soundstreamer2
         NetworkIO nc;
         float Volume = 0.2f;
         bool Muted = false;
-        WaveOut waveOut;
+        //WaveOut waveOut;
+        FixOutDevice waveOut;
         WaveFormat waveFormat;
-        BufferedWaveProvider bufferedWave;
+        //BufferedWaveProvider bufferedWave;
         Thread pingThread;
         Thread receiveThread;
         byte compression;
@@ -90,14 +91,10 @@ namespace soundstreamer2
                 }
 
                 waveFormat = new WaveFormat(sampleRate, channels);
-                bufferedWave = new BufferedWaveProvider(waveFormat) { DiscardOnBufferOverflow = true, BufferDuration = TimeSpan.FromSeconds(3) };
 
-                waveOut = new WaveOut();
-                //waveOut.NumberOfBuffers = 3;
-                //waveOut.DesiredLatency = 50 * waveOut.NumberOfBuffers;
-                waveOut.Init(bufferedWave);
+                waveOut = new FixOutDevice(waveFormat);
                 waveOut.Volume = Volume;
-                waveOut.Play();
+                waveOut.Init();
 
                 pingThread = new Thread(() => PingLoop(nc));
                 pingThread.Start();
@@ -176,8 +173,8 @@ namespace soundstreamer2
             finally
             {
                 Console.WriteLine("Exiting");
-                nc?.Dispose();
                 waveOut?.Dispose();
+                nc?.Dispose();
             }
         }
         void PingLoop(NetworkIO nc)
@@ -204,7 +201,7 @@ namespace soundstreamer2
                     switch ((CompressionType)compression)
                     {
                         case CompressionType.None:
-                            bufferedWave.AddSamples(buf, 0, len);
+                            waveOut.bufferedWave.AddSamples(buf, 0, len);
                             break;
                         case CompressionType.Deflate:
                             using (var ms = new MemoryStream(buf))
@@ -214,7 +211,7 @@ namespace soundstreamer2
                                 ds.CopyTo(ms2);
                                 ds.Close();
                                 var arr = ms2.ToArray();
-                                bufferedWave.AddSamples(arr, 0, arr.Length);
+                                waveOut.bufferedWave.AddSamples(arr, 0, arr.Length);
                             }
                             break;
                         case CompressionType.Mp3:
