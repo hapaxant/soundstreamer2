@@ -201,16 +201,8 @@ namespace soundstreamer2
                         return (Newtonsoft.Json.JsonConvert.DeserializeObject(responsereader.ReadToEnd()) as dynamic).public_url.ToString();
                     }
                 }
-                //catch (WebException ex)
                 catch (WebException)
                 {
-                    //Console.WriteLine(ex.Status);
-                    //using (var r = ex.Response)
-                    //using (var rs = r.GetResponseStream())
-                    //using (var rsr = new StreamReader(rs))
-                    //{
-                    //    Console.WriteLine(rsr.ReadToEnd());
-                    //}
                     Console.Write(".");
                     if (++tries % 200 == 0)
                     {
@@ -228,7 +220,6 @@ namespace soundstreamer2
         string NgrokUrl = null;
         public void Main()
         {
-            //if (!File.Exists("sketchy_vac.zip")) UseVac = false;
             if (UseNgrok && Port == 0) Port = 6969;
             if (Port == 0)
             {
@@ -242,8 +233,6 @@ namespace soundstreamer2
             Process ngrok = null;
             if (UseNgrok)
             {
-                //Process.Start(new ProcessStartInfo("ngrok.exe", "authtoken " + NgrokToken) { UseShellExecute = false }).WaitForExit();
-                //can't use above code bcs ngrok screams in windows xp
                 var tokenpath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ngrok2", "ngrok.yml");
                 (new FileInfo(tokenpath).Directory).Create();
                 File.WriteAllText(tokenpath, "authtoken: " + NgrokToken);
@@ -252,14 +241,13 @@ namespace soundstreamer2
                 ngrok.Start();
 
                 NgrokUrl = StartNgrokTunnel(Port);
-                Console.WriteLine(NgrokUrl);
             }
 
             InitNAudio();
 
             var code = GetConnectCode();
             Console.Title = $"Connect with code '{code}'!";
-            Console.WriteLine("Use this code to connect with client: " + code);
+            Console.WriteLine("\nUse this code to connect with client: " + code);
 
             ServerLoop();
         }
@@ -365,7 +353,6 @@ namespace soundstreamer2
                             buf = ms.ToArray();
                             len = buf.Length;
                         }
-                        //Console.WriteLine($"({(e.BytesRecorded - len > 0 ? "+" : "")}{e.BytesRecorded - len}) old {e.BytesRecorded} new {len}");
                         break;
                     case CompressionType.Mp3:
                     case CompressionType.Ogg:
@@ -389,9 +376,6 @@ namespace soundstreamer2
                         {
                             Console.WriteLine(ex);
                         }
-                        //var w = nc.Writer;
-                        //w.Write(len);
-                        //w.Write(buf, 0, len);
                     }
                 }
                 finally
@@ -434,11 +418,8 @@ namespace soundstreamer2
         {
             try
             {
-                //Console.WriteLine("sending header");
                 nc.SendHeader(SampleRate, Channels, Compression);
-                //Console.WriteLine("receiving version");
                 var ver = nc.ReceiveVersion();
-                //Console.WriteLine($"version is {ver}, sending result");
                 if (ver != Protocol.VERSION)
                 {
                     Console.WriteLine("A client requested incompatible version " + ver);
@@ -462,13 +443,11 @@ namespace soundstreamer2
 
                 while (nc.Client.Connected)
                 {
-                    nc.Client.ReceiveTimeout = 10000;
-                    //Console.WriteLine("reading ushort");
+                    nc.Client.ReceiveTimeout = 24000;
                     var p = nc.ReceiveMessageType();
                     switch (p)
                     {
                         case Protocol.MessageType.Ping:
-                            //Console.WriteLine("got ping");
                             break;
                         case Protocol.MessageType.Mute:
                             nc.Muted = true;
@@ -476,7 +455,9 @@ namespace soundstreamer2
                         case Protocol.MessageType.Unmute:
                             nc.Muted = false;
                             break;
-                        default: nc.Dispose(); return;
+                        default:
+                            nc.Writer.Write("what are you doing?".ToCharArray());
+                            nc.Dispose(); return;
                     }
                 }
             }

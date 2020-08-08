@@ -105,7 +105,7 @@ namespace soundstreamer2
                     else Console.Error.WriteLine("invalid argument: " + arg);
                     continue;
                 }
-                else if (arglower.StartsWith("bufferms=") || arglower.StartsWith("bfs="))
+                else if (arglower.StartsWith("bufferms=") || arglower.StartsWith("ms="))
                 {
                     if (!ctorServer()) break;
                     if (byte.TryParse(arg.Substring(arg.IndexOf('=') + 1), out var result))

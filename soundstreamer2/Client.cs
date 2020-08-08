@@ -10,6 +10,7 @@ using NAudio;
 using NAudio.Wave;
 using System.Net.Sockets;
 using System.Threading;
+using System.Globalization;
 
 namespace soundstreamer2
 {
@@ -32,12 +33,34 @@ namespace soundstreamer2
 
         public void Main()
         {
+            var prevCode = "";
+            if (File.Exists("clientcfg.txt"))
+            {
+                var f = File.ReadAllLines("clientcfg.txt");
+                if (f[0] != Protocol.VERSION.ToString()) File.Delete("clientcfg.txt");
+                else
+                {
+                    prevCode = f[1].ToUpperInvariant();
+                    Volume = float.Parse(f[2], CultureInfo.InvariantCulture);
+                }
+            }
             try
             {
                 if (Code == null)
                 {
                     Console.Write("Enter connection code: ");
-                    Code = Console.ReadLine();
+                    if (prevCode != "")
+                    {
+                        var prevcolor = Console.ForegroundColor;
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write(prevCode);
+                        Console.ForegroundColor = prevcolor;
+                        Console.CursorLeft -= prevCode.Length;
+                        var line = Console.ReadLine();
+                        if (line == "") Code = prevCode;
+                        else Code = line;
+                    }
+                    else Code = Console.ReadLine();
                 }
                 if (Code == "")
                 {
@@ -70,7 +93,8 @@ namespace soundstreamer2
                 bufferedWave = new BufferedWaveProvider(waveFormat) { DiscardOnBufferOverflow = true, BufferDuration = TimeSpan.FromSeconds(3) };
 
                 waveOut = new WaveOut();
-                //waveOut.PlaybackStopped += (s, e) => { Console.WriteLine($"PlaybackStopped {e.Exception?.Message}"); };
+                //waveOut.NumberOfBuffers = 3;
+                //waveOut.DesiredLatency = 50 * waveOut.NumberOfBuffers;
                 waveOut.Init(bufferedWave);
                 waveOut.Volume = Volume;
                 waveOut.Play();
@@ -83,32 +107,51 @@ namespace soundstreamer2
                 while (nc.Client.Connected)
                 {
                     Console.SetCursorPosition(0, 0);
-                    Console.WriteLine($"Volume: {Volume:N}% {(Muted ? "(muted)" : "       ")}");
-                    Console.WriteLine("Left & right arrow keys to change volume, spacebar to mute");
+                    File.WriteAllLines("clientcfg.txt", new[] { Protocol.VERSION.ToString(), Code, Volume.ToString(CultureInfo.InvariantCulture) });
+                    Console.WriteLine($"Volume: {(Volume * 100).ToString("N0")}% {(Muted ? "(muted)" : "       ")}");
+                    Console.WriteLine("Arrow keys to change volume, spacebar to mute");
+                    Console.WriteLine("hold ctrl for fast change, shift for slow");
                     Console.WriteLine($"Samplerate: {sampleRate}, Channels: {channels}, Compression: {(CompressionType)compressionType}");
                     var key = Console.ReadKey(true);
                     switch (key.Key)
                     {
+                        case ConsoleKey.DownArrow:
+                            if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume -= .20f;
+                            else if ((key.Modifiers & ConsoleModifiers.Shift) == ConsoleModifiers.Shift) Volume -= .075f;
+                            else Volume -= .10f;
+
+                            if (Volume <= 0f) Volume = 0f;
+                            if (Volume < 0.005f && !Muted) goto case ConsoleKey.Spacebar;
+                            break;
                         case ConsoleKey.LeftArrow:
-                            Volume -= .05f;
-                            if (Volume <= 0f)
-                            {
-                                Volume = 0f;
-                            }
+                            if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume -= .15f;
+                            else if ((key.Modifiers & ConsoleModifiers.Shift) == ConsoleModifiers.Shift) Volume -= .01f;
+                            else Volume -= .05f;
+
+                            if (Volume <= 0f) Volume = 0f;
                             waveOut.Volume = Volume;
-                            if (Volume < 0.025f && !Muted) goto case ConsoleKey.Spacebar;
+                            if (Volume < 0.005f && !Muted) goto case ConsoleKey.Spacebar;
+                            break;
+                        case ConsoleKey.UpArrow:
+                            if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume += .20f;
+                            else if ((key.Modifiers & ConsoleModifiers.Shift) == ConsoleModifiers.Shift) Volume += .075f;
+                            else Volume += .10f;
+
+                            if (Volume >= 1f) Volume = 1f;
+                            waveOut.Volume = Volume;
+                            if (Volume > 0.005f && Muted) goto case ConsoleKey.Spacebar;
                             break;
                         case ConsoleKey.RightArrow:
-                            Volume += .05f;
-                            if (Volume >= 1f)
-                            {
-                                Volume = 1f;
-                            }
+                            if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume += .15f;
+                            else if ((key.Modifiers & ConsoleModifiers.Shift) == ConsoleModifiers.Shift) Volume += .01f;
+                            else Volume += .05f;
+
+                            if (Volume >= 1f) Volume = 1f;
                             waveOut.Volume = Volume;
-                            if (Volume != 0f && Muted) goto case ConsoleKey.Spacebar;
+                            if (Volume > 0.005f && Muted) goto case ConsoleKey.Spacebar;
                             break;
                         case ConsoleKey.Spacebar:
-                            if (Volume > 0.025f || !Muted)
+                            if (Volume > 0.005f || !Muted)
                             {
                                 Muted = !Muted;
                                 if (Muted)
@@ -143,8 +186,7 @@ namespace soundstreamer2
             {
                 while (nc.Client.Connected)
                 {
-                    Thread.Sleep(5000);
-                    //Console.WriteLine("sending ping");
+                    Thread.Sleep(3000);
                     nc.SendPing();
                 }
             }
@@ -158,7 +200,6 @@ namespace soundstreamer2
                 {
                     int len = nc.Reader.ReadInt32();
                     if (len > 67108864) throw new ArgumentOutOfRangeException("buffer too big!");//limit to 64 mb in case something fricks up and requests a 2 gb buffer
-                                                                                                 //Console.WriteLine(len);
                     var buf = nc.Reader.ReadBytes(len);
                     switch ((CompressionType)compression)
                     {
