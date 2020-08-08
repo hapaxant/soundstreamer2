@@ -72,111 +72,125 @@ namespace soundstreamer2
                 var (hostname, port) = ParseConnectionCode(Code.ToUpperInvariant());
 
                 Console.WriteLine("Connecting");
-                nc = new NetworkIO(new TcpClient(hostname, port));
-                var (version, sampleRate, channels, compressionType) = nc.ReceiveHeader();
-                compression = compressionType;
-                if (compression >= (byte)CompressionType.Mp3) throw new NotImplementedException($"compression {(CompressionType)compression} not yet implemented");
-                Console.CursorTop = 2;
-                Console.WriteLine($"Samplerate: {sampleRate}, Channels: {channels}, Compression: {(CompressionType)compressionType}, Version: {version}");
-                nc.SendVersion();
-                var result = nc.ReceiveResult();
-                if (result != 0) { Console.WriteLine($"Error {result}"); return; }
-
-                if (sampleRate > 48000 || channels > 2)
+                while (true)
                 {
-                    Console.WriteLine($"warning: samplerate ({sampleRate}) or channels ({channels}) is pretty high. press enter to continue");
-                    Console.ReadLine();
-                }
-
-                waveFormat = new WaveFormat(sampleRate, channels);
-
-                waveOut = new FixOutDevice(waveFormat);
-                waveOut.Volume = Volume;
-                waveOut.Init();
-
-                pingThread = new Thread(() => PingLoop(nc));
-                pingThread.Start();
-                receiveThread = new Thread(() => ReceiveLoop(nc));
-                receiveThread.Start();
-                Console.Clear();
-                while (nc.Client.Connected)
-                {
-                    Console.SetCursorPosition(0, 0);
-                    File.WriteAllLines("clientcfg.txt", new[] { Protocol.VERSION.ToString(), Code, Volume.ToString(CultureInfo.InvariantCulture) });
-                    Console.WriteLine($"Volume: {(Volume * 100).ToString("N0")}% {(Muted ? "(muted)" : "       ")}");
-                    Console.WriteLine("Arrow keys to change volume, spacebar to mute");
-                    Console.WriteLine("ctrl+arrows for fast change, - and = for slow change");
-                    Console.WriteLine($"Samplerate: {sampleRate}, Channels: {channels}, Compression: {(CompressionType)compressionType}");
-                    var key = Console.ReadKey(true);
-                    switch (key.Key)
+                    try
                     {
-                        case ConsoleKey.OemMinus:
-                        case ConsoleKey.Subtract:
-                            if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume -= .02f;
-                            else Volume -= .01f;
-
-                            if (Volume <= 0f) Volume = 0f;
-                            waveOut.Volume = Volume;
-                            if (Volume < 0.005f && !Muted) goto case ConsoleKey.Spacebar;
-                            break;
-                        case ConsoleKey.OemPlus:
-                        case ConsoleKey.Add:
-                            if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume += .02f;
-                            Volume += .01f;
-
-                            if (Volume >= 1f) Volume = 1f;
-                            waveOut.Volume = Volume;
-                            if (Volume > 0.005f && Muted) goto case ConsoleKey.Spacebar;
-                            break;
-                        case ConsoleKey.DownArrow:
-                            if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume -= .20f;
-                            else Volume -= .10f;
-
-                            if (Volume <= 0f) Volume = 0f;
-                            waveOut.Volume = Volume;
-                            if (Volume < 0.005f && !Muted) goto case ConsoleKey.Spacebar;
-                            break;
-                        case ConsoleKey.LeftArrow:
-                            if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume -= .15f;
-                            else Volume -= .05f;
-
-                            if (Volume <= 0f) Volume = 0f;
-                            waveOut.Volume = Volume;
-                            if (Volume < 0.005f && !Muted) goto case ConsoleKey.Spacebar;
-                            break;
-                        case ConsoleKey.UpArrow:
-                            if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume += .20f;
-                            else Volume += .10f;
-
-                            if (Volume >= 1f) Volume = 1f;
-                            waveOut.Volume = Volume;
-                            if (Volume > 0.005f && Muted) goto case ConsoleKey.Spacebar;
-                            break;
-                        case ConsoleKey.RightArrow:
-                            if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume += .15f;
-                            else Volume += .05f;
-
-                            if (Volume >= 1f) Volume = 1f;
-                            waveOut.Volume = Volume;
-                            if (Volume > 0.005f && Muted) goto case ConsoleKey.Spacebar;
-                            break;
-                        case ConsoleKey.Spacebar:
-                            if (Volume > 0.005f || !Muted)
-                            {
-                                Muted = !Muted;
-                                if (Muted)
-                                {
-                                    waveOut.Volume = 0;
-                                    nc.SendMute();
-                                }
-                                else
-                                {
-                                    waveOut.Volume = Volume;
-                                    nc.SendUnmute();
-                                }
-                            }
-                            break;
+                        nc = new NetworkIO(new TcpClient(hostname, port));
                     }
+                    catch (SocketException ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                        return;
+                    }
+                    var (version, sampleRate, channels, compressionType) = nc.ReceiveHeader();
+                    compression = compressionType;
+                    if (compression >= (byte)CompressionType.Mp3) throw new NotImplementedException($"compression {(CompressionType)compression} not yet implemented");
+                    Console.CursorTop = 2;
+                    Console.WriteLine($"Samplerate: {sampleRate}, Channels: {channels}, Compression: {(CompressionType)compressionType}, Version: {version}");
+                    nc.SendVersion();
+                    var result = nc.ReceiveResult();
+                    if (result != 0) { Console.WriteLine($"Error {result}"); return; }
+
+                    if (sampleRate > 48000 || channels > 2)
+                    {
+                        Console.WriteLine($"warning: samplerate ({sampleRate}) or channels ({channels}) is pretty high. press enter to continue");
+                        Console.ReadLine();
+                    }
+
+                    waveFormat = new WaveFormat(sampleRate, channels);
+
+                    waveOut = new FixOutDevice(waveFormat);
+                    waveOut.Volume = Volume;
+                    waveOut.Init();
+
+                    pingThread = new Thread(() => PingLoop(nc));
+                    pingThread.Start();
+                    receiveThread = new Thread(() => ReceiveLoop(nc));
+                    receiveThread.Start();
+                    Console.Clear();
+                    while (nc.Client.Connected)
+                    {
+                        Console.SetCursorPosition(0, 0);
+                        File.WriteAllLines("clientcfg.txt", new[] { Protocol.VERSION.ToString(), Code, Volume.ToString(CultureInfo.InvariantCulture) });
+                        Console.WriteLine($"Volume: {(Volume * 100).ToString("N0")}% {(Muted ? "(muted)" : "       ")}");
+                        Console.WriteLine("Arrow keys to change volume, spacebar to mute");
+                        Console.WriteLine("ctrl+arrows for fast change, - and = for slow change");
+                        Console.WriteLine($"Samplerate: {sampleRate}, Channels: {channels}, Compression: {(CompressionType)compressionType}");
+                        while (!Console.KeyAvailable && nc.Client.Connected) Thread.Sleep(5);
+                        if (!nc.Client.Connected) break;
+                        var key = Console.ReadKey(true);
+                        switch (key.Key)
+                        {
+                            case ConsoleKey.OemMinus:
+                            case ConsoleKey.Subtract:
+                                if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume -= .02f;
+                                else Volume -= .01f;
+
+                                if (Volume <= 0f) Volume = 0f;
+                                waveOut.Volume = Volume;
+                                if (Volume < 0.005f && !Muted) goto case ConsoleKey.Spacebar;
+                                break;
+                            case ConsoleKey.OemPlus:
+                            case ConsoleKey.Add:
+                                if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume += .02f;
+                                Volume += .01f;
+
+                                if (Volume >= 1f) Volume = 1f;
+                                waveOut.Volume = Volume;
+                                if (Volume > 0.005f && Muted) goto case ConsoleKey.Spacebar;
+                                break;
+                            case ConsoleKey.DownArrow:
+                                if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume -= .20f;
+                                else Volume -= .10f;
+
+                                if (Volume <= 0f) Volume = 0f;
+                                waveOut.Volume = Volume;
+                                if (Volume < 0.005f && !Muted) goto case ConsoleKey.Spacebar;
+                                break;
+                            case ConsoleKey.LeftArrow:
+                                if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume -= .15f;
+                                else Volume -= .05f;
+
+                                if (Volume <= 0f) Volume = 0f;
+                                waveOut.Volume = Volume;
+                                if (Volume < 0.005f && !Muted) goto case ConsoleKey.Spacebar;
+                                break;
+                            case ConsoleKey.UpArrow:
+                                if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume += .20f;
+                                else Volume += .10f;
+
+                                if (Volume >= 1f) Volume = 1f;
+                                waveOut.Volume = Volume;
+                                if (Volume > 0.005f && Muted) goto case ConsoleKey.Spacebar;
+                                break;
+                            case ConsoleKey.RightArrow:
+                                if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control) Volume += .15f;
+                                else Volume += .05f;
+
+                                if (Volume >= 1f) Volume = 1f;
+                                waveOut.Volume = Volume;
+                                if (Volume > 0.005f && Muted) goto case ConsoleKey.Spacebar;
+                                break;
+                            case ConsoleKey.Spacebar:
+                                if (Volume > 0.005f || !Muted)
+                                {
+                                    Muted = !Muted;
+                                    if (Muted)
+                                    {
+                                        waveOut.Volume = 0;
+                                        nc.SendMute();
+                                    }
+                                    else
+                                    {
+                                        waveOut.Volume = Volume;
+                                        nc.SendUnmute();
+                                    }
+                                }
+                                break;
+                        }
+                    }
+                    Console.WriteLine("Connection lost, reconnecting...");
                 }
             }
             catch (Exception ex)
